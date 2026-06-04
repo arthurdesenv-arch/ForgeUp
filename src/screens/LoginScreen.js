@@ -1,7 +1,7 @@
 import { StyleSheet, Text, View, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform } from 'react-native';
 import { colors } from '../theme/colors';
 
-export default function LoginScreen() {
+export default function LoginScreen({ navigation }) {
   return (
     <KeyboardAvoidingView 
       style={styles.container}
@@ -43,7 +43,7 @@ export default function LoginScreen() {
           <View style={styles.dividerLine} />
         </View>
 
-        <TouchableOpacity style={styles.buttonSecondary}>
+        <TouchableOpacity style={styles.buttonSecondary} onPress={() => navigation.navigate('Step1PersonalData')}>
           <Text style={styles.buttonSecondaryText}>Criar conta</Text>
         </TouchableOpacity>
       </View>
