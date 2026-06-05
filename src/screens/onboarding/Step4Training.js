@@ -1,5 +1,8 @@
-import { StyleSheet, Text, View, TouchableOpacity, ScrollView } from 'react-native';
+import { StyleSheet, Text, View, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
 import { useState } from 'react';
+import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
+import { ref, set } from 'firebase/database';
+import { auth, db } from '../../firebaseConfig';
 import { colors } from '../../theme/colors';
 
 const divisoesSugeridas = {
@@ -18,15 +21,56 @@ export default function Step4Training({ navigation, route }) {
 
   const divisao = divisoesSugeridas[dias];
 
-  function handleFinalizar() {
-    const dadosCompletos = {
-      ...dadosAnteriores,
-      diasTreino: dias,
-      divisaoTreino: divisao.nome,
-    };
-    console.log('Dados completos do usuário:', dadosCompletos);
-    alert(`Bem-vindo ao ForgeUp, ${dadosAnteriores.nome}! 🔥`);
-  }
+  const [loading, setLoading] = useState(false);
+
+  async function handleFinalizar() {
+    setLoading(true);
+    try {
+      // Cria o usuário no Firebase Auth
+      const userCredential = await createUserWithEmailAndPassword(
+        auth,
+        dadosAnteriores.email,
+        dadosAnteriores.senha
+      );
+
+      const user = userCredential.user;
+
+      // Atualiza o nome do usuário
+      await updateProfile(user, { displayName: dadosAnteriores.nome });
+
+      // Salva os dados completos no Firestore
+      await set(ref(db, 'usuarios/' + user.uid), {
+        nome: dadosAnteriores.nome,
+        email: dadosAnteriores.email,
+        telefone: dadosAnteriores.telefone,
+        nascimento: dadosAnteriores.nascimento,
+        genero: dadosAnteriores.genero,
+        peso: dadosAnteriores.peso,
+        altura: dadosAnteriores.altura,
+        nivel: dadosAnteriores.nivel,
+        objetivo: dadosAnteriores.objetivo,
+        diasTreino: dias,
+        divisaoTreino: divisao.nome,
+        criadoEm: new Date().toISOString(),
+      });
+
+      alert(`Bem-vindo ao ForgeUp, ${dadosAnteriores.nome}! 🔥`);
+
+    } catch (error) {
+      if (error.code === 'auth/email-already-in-use') {
+        alert('Este e-mail já está cadastrado!');
+      } else if (error.code === 'auth/invalid-email') {
+        alert('E-mail inválido!');
+      } else if (error.code === 'auth/weak-password') {
+        alert('Senha muito fraca!');
+      } else {
+        alert('Erro ao criar conta. Tente novamente.');
+        console.log(error);
+      }
+    } finally {
+      setLoading(false);
+    }
+}
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
@@ -97,8 +141,11 @@ export default function Step4Training({ navigation, route }) {
         </View>
       )}
 
-      <TouchableOpacity style={styles.buttonPrimary} onPress={handleFinalizar}>
-        <Text style={styles.buttonPrimaryText}>Criar minha conta 🔥</Text>
+      <TouchableOpacity style={styles.buttonPrimary} onPress={handleFinalizar} disabled={loading}>
+        {loading
+          ? <ActivityIndicator color={colors.white} />
+          : <Text style={styles.buttonPrimaryText}>Criar minha conta 🔥</Text>
+  }
       </TouchableOpacity>
 
     </ScrollView>
